@@ -4,6 +4,7 @@ import {
   BRANCHES_KO,
   HIDDEN_STEMS,
   STEMS,
+  STEM_ELEMENTS,
   STEMS_KO,
 } from '@/constants/saju';
 import { calculateSaju, tenGod, twelveSpirit, twelveStage } from '@/lib/saju';
@@ -104,6 +105,22 @@ function toUsefulGodElement(value: string | undefined, fallback: OhaengKey): Oha
   return ELEMENT_BY_BACKEND_VALUE[first] ?? ELEMENT_BY_KO[first] ?? fallback;
 }
 
+function normalizeLuckCycleLabel(label: string, fallback: SajuData['daewoon'][number]) {
+  const stem = normalizeStem(label[0], fallback.stem);
+  const branch = normalizeBranch(label[1], fallback.branch);
+  const stemIndex = STEMS.indexOf(stem);
+  const branchIndex = BRANCHES.indexOf(branch);
+
+  return {
+    ...fallback,
+    stem,
+    branch,
+    stemKo: stemIndex >= 0 ? STEMS_KO[stemIndex] : fallback.stemKo,
+    branchKo: branchIndex >= 0 ? BRANCHES_KO[branchIndex] : fallback.branchKo,
+    element: normalizeElement(stemIndex >= 0 ? STEM_ELEMENTS[stemIndex] : undefined, fallback.element as OhaengKey),
+  };
+}
+
 function mainHidden(branch: string): string {
   const hidden = HIDDEN_STEMS[branch];
   return hidden ? hidden[hidden.length - 1] : branch;
@@ -202,7 +219,7 @@ function normalizeBackendResponse(
         : fallback.yongshin.reason,
     },
     daewoon: luckLabel && currentLuck
-      ? [{ ...currentLuck, stem: luckLabel[0] ?? currentLuck.stem, branch: luckLabel[1] ?? currentLuck.branch }, ...fallback.daewoon.slice(1)]
+      ? [normalizeLuckCycleLabel(luckLabel, currentLuck), ...fallback.daewoon.slice(1)]
       : fallback.daewoon,
     dayMaster: {
       stem: dayStem,
