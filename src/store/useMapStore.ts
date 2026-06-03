@@ -7,6 +7,7 @@ export type Tag = '진로' | '관계' | '상담';
 
 export type MapFlow =
   | 'map'
+  | 'loading'
   | 'career' | 'scenario' | 'result'
   | 'relation' | 'compat' | 'chatsim'
   | 'counsel';
@@ -61,6 +62,7 @@ interface MapStore {
   activeNodeId: string | null;
 
   setFlow: (flow: MapFlow) => void;
+  enterActiveFlow: () => void;
   startFlow: (tag: Tag, worry: string) => void;
   openNode: (id: string) => void;
   confirmNode: (decision?: string) => void;
@@ -83,13 +85,22 @@ export const useMapStore = create<MapStore>()(
 
       setFlow: (flow) => set({ flow }),
 
+      enterActiveFlow: () => {
+        const { tag } = get();
+        if (!tag) {
+          set({ flow: 'map' });
+          return;
+        }
+        set({ flow: entryFor(tag) });
+      },
+
       // A worry is saved as an UNSELECTED node the moment exploration starts,
       // so it persists on the map (gray/dashed) even if never confirmed.
       startFlow: (tag, worry) => {
         const { nodes } = get();
         const dupe = nodes.find((n) => !n.selected && n.kind === tag && n.worry === worry);
         if (dupe) {
-          set({ tag, worry, activeNodeId: dupe.id, flow: entryFor(tag) });
+          set({ tag, worry, activeNodeId: dupe.id, flow: 'loading' });
           return;
         }
         const node: WorryNode = {
@@ -102,7 +113,7 @@ export const useMapStore = create<MapStore>()(
           nodeType: 'worry',
           createdAt: Date.now(),
         };
-        set({ nodes: [...nodes, node], tag, worry, activeNodeId: node.id, flow: entryFor(tag) });
+        set({ nodes: [...nodes, node], tag, worry, activeNodeId: node.id, flow: 'loading' });
       },
 
       // Open an existing node — selected ones show their report; unselected ones

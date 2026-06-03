@@ -5,6 +5,7 @@ import { useUserStore } from '@/store/useUserStore';
 import { useMapStore, activeNodeSelector } from '@/store/useMapStore';
 import { useHydrated } from '@/hooks/useHydrated';
 import MapScreen from './MapScreen';
+import MapLoadingScreen from './MapLoadingScreen';
 import CareerEntry from './CareerEntry';
 import ScenarioSim from './ScenarioSim';
 import ResultReport from './ResultReport';
@@ -25,7 +26,7 @@ interface RelationPartner {
 export default function MapPageClient() {
   const hydrated = useHydrated();
   const { user, completeMapOnboarding } = useUserStore();
-  const { flow, simKind, setFlow, resetFlow, setSimKind, confirmNode, saveUnselectedScenarioOptions, saveRelationSimulation } = useMapStore();
+  const { flow, worry, tag, simKind, setFlow, enterActiveFlow, resetFlow, setSimKind, confirmNode, saveUnselectedScenarioOptions, saveRelationSimulation } = useMapStore();
   const activeNode = useMapStore(activeNodeSelector);
   const [onbStep, setOnbStep] = useState<'state' | 'loading'>('state');
   const [relationPartner, setRelationPartner] = useState<RelationPartner>({ name: '지원', el: 'fire', g: '丙', rel: '썸' });
@@ -45,6 +46,8 @@ export default function MapPageClient() {
   const confirmed = !!activeNode?.selected;
 
   switch (flow) {
+    case 'loading':
+      return <MapLoadingScreen tag={tag} worry={worry} onDone={enterActiveFlow} />;
     case 'career':
       return <CareerEntry onNext={() => setFlow('scenario')} onBack={resetFlow} />;
     case 'scenario':
