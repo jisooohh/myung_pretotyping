@@ -24,6 +24,7 @@ export interface WorryNode {
   parentId?: string;
   scenarioPicks?: Record<number, number>;
   choiceId?: number;
+  nodeType?: 'worry' | 'scenario-branch';
   createdAt: number;
 }
 
@@ -39,6 +40,16 @@ const shortLabel = (worry: string): string => {
   return t.length > 12 ? t.slice(0, 12) + '…' : t;
 };
 
+const scenarioLabel = (option: string): string => {
+  if (option.includes('포트폴리오')) return '포트폴리오 경로';
+  if (option.includes('지인')) return '첫 프로젝트 경로';
+  if (option.includes('코딩테스트')) return '코딩테스트 경로';
+  if (option.includes('정규직')) return '정규직 경로';
+  if (option.includes('프리랜서')) return '프리랜서 경로';
+  if (option.includes('협상')) return '협상 경로';
+  return shortLabel(option);
+};
+
 interface MapStore {
   flow: MapFlow;
   worry: string;
@@ -52,6 +63,7 @@ interface MapStore {
   openNode: (id: string) => void;
   confirmNode: (decision?: string) => void;
   saveUnselectedScenarioOptions: (picks: Record<number, number>, choices: Array<{ id: number; opts: string[] }>) => void;
+  saveRelationSimulation: (decision: string) => void;
   setSimKind: (kind: string) => void;
   resetFlow: () => void;
   removeNode: (id: string) => void;
@@ -85,6 +97,7 @@ export const useMapStore = create<MapStore>()(
           worry,
           reportType: reportFor(tag),
           selected: false,
+          nodeType: 'worry',
           createdAt: Date.now(),
         };
         set({ nodes: [...nodes, node], tag, worry, activeNodeId: node.id, flow: entryFor(tag) });
@@ -140,7 +153,7 @@ export const useMapStore = create<MapStore>()(
 
           if (existing) {
             nextNodes = nextNodes.map((n) =>
-              n.id === existing.id ? { ...n, scenarioPicks, worry, label: shortLabel(alt.label) } : n
+              n.id === existing.id ? { ...n, scenarioPicks, worry, label: scenarioLabel(alt.label) } : n
             );
             continue;
           }
@@ -150,7 +163,7 @@ export const useMapStore = create<MapStore>()(
             {
               id: `n_${Date.now().toString(36)}_${alt.choice.id}_${alt.optionIndex}`,
               kind: '진로',
-              label: shortLabel(alt.label),
+              label: scenarioLabel(alt.label),
               worry,
               reportType: 'result',
               selected: false,
@@ -158,12 +171,25 @@ export const useMapStore = create<MapStore>()(
               parentId: activeNodeId,
               scenarioPicks,
               choiceId: alt.choice.id,
+              nodeType: 'scenario-branch',
               createdAt: Date.now(),
             },
           ];
         }
 
         set({ nodes: nextNodes });
+      },
+
+      saveRelationSimulation: (decision) => {
+        const { activeNodeId, nodes } = get();
+        if (!activeNodeId) return;
+        set({
+          nodes: nodes.map((n) =>
+            n.id === activeNodeId
+              ? { ...n, selected: true, decision, label: shortLabel(decision), nodeType: 'worry' }
+              : n
+          ),
+        });
       },
 
       setSimKind: (simKind) => set({ simKind }),

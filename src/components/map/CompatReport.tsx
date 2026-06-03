@@ -6,11 +6,13 @@ import { EL, KIND } from '@/constants/saju';
 import Icon from '@/components/ui/Icon';
 import ReportHeader from './ReportHeader';
 
-interface Props { onBack: () => void; onSim: (kind: string) => void; onConfirm: () => void; onClose?: () => void; confirmed?: boolean; }
+interface Partner { name: string; el: string; g: string; rel?: string; }
+interface Props { onBack: () => void; onSim: (kind: string) => void; onConfirm: () => void; onClose?: () => void; confirmed?: boolean; partner?: Partner; }
 
-export default function CompatReport({ onBack, onSim, onConfirm, onClose, confirmed }: Props) {
+export default function CompatReport({ onBack, onSim, onConfirm, onClose, confirmed, partner = { name: '김지원', el: 'fire', g: '丙', rel: '썸' } }: Props) {
   const { worry } = useMapStore();
   const [sim, setSim] = useState('연애');
+  const shortName = partner.name.replace(/^김|^이|^박|^최|^정|^강|^조|^윤|^장|^임|^한|^오|^서|^신|^권|^황|^안|^송|^류|^홍/, '');
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -22,7 +24,7 @@ export default function CompatReport({ onBack, onSim, onConfirm, onClose, confir
         </div>
         <div className="card" style={{ padding: 20, marginBottom: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around' }}>
-            {[{ n: '지원', el: 'fire', g: '丙', label: '썸' }, { n: '아라', el: 'fire', g: '丁', label: '나' }].map((p, i) => (
+            {[{ n: shortName || partner.name, el: partner.el, g: partner.g, label: partner.rel || '상대' }, { n: '아라', el: 'fire', g: '丁', label: '나' }].map((p, i) => (
               <div key={p.n} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
                 <div style={{ width: 64, height: 64, borderRadius: '50%', background: EL[p.el].soft, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <span className="glyph" style={{ fontSize: 26, color: EL[p.el].color }}>{p.g}</span>

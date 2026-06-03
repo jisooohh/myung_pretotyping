@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { EL } from '@/constants/saju';
 import Icon from '@/components/ui/Icon';
 
@@ -12,20 +12,49 @@ export const STORY_PAGES = [
 ];
 
 interface Props { index?: number; onClose?: () => void; name?: string; }
+const PAGE_DURATION_MS = 5000;
 
 export default function TodayStory({ index = 0, onClose, name = '아라' }: Props) {
   const [i, setI] = useState(index);
+  const [progress, setProgress] = useState(0);
   const p = STORY_PAGES[i];
   const el = EL[p.el];
-  const go = (d: number) => setI(v => Math.max(0, Math.min(STORY_PAGES.length - 1, v + d)));
+  const goNext = useCallback(() => {
+    setI((v) => {
+      if (v >= STORY_PAGES.length - 1) {
+        onClose?.();
+        return v;
+      }
+      return v + 1;
+    });
+  }, [onClose]);
+  const goPrev = useCallback(() => {
+    setI((v) => Math.max(0, v - 1));
+  }, []);
   const circumference = 2 * Math.PI * 24;
+
+  useEffect(() => {
+    const startedAt = performance.now();
+    let frame = 0;
+    const tick = (now: number) => {
+      const nextProgress = Math.min(1, (now - startedAt) / PAGE_DURATION_MS);
+      setProgress(nextProgress);
+      if (nextProgress >= 1) {
+        goNext();
+        return;
+      }
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [i, goNext]);
 
   return (
     <div style={{ flex: 1, position: 'relative', overflow: 'hidden', background: `radial-gradient(circle at 50% 22%, ${el.soft}, transparent 55%), var(--bg)` }}>
       <div style={{ position: 'absolute', top: 14, left: 14, right: 14, display: 'flex', gap: 5, zIndex: 3 }}>
         {STORY_PAGES.map((_, k) => (
           <div key={k} style={{ flex: 1, height: 2.5, borderRadius: 2, background: 'var(--border)', overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: k < i ? '100%' : k === i ? '62%' : '0%', background: 'var(--fg-1)', borderRadius: 2 }} />
+            <div style={{ height: '100%', width: k < i ? '100%' : k === i ? `${progress * 100}%` : '0%', background: 'var(--fg-1)', borderRadius: 2 }} />
           </div>
         ))}
       </div>
@@ -37,8 +66,8 @@ export default function TodayStory({ index = 0, onClose, name = '아라' }: Prop
         </div>
         <button onClick={onClose} className="icon-btn"><Icon name="x" size={22} /></button>
       </div>
-      <button onClick={() => go(-1)} style={{ position: 'absolute', left: 0, top: 64, bottom: 0, width: '33%', zIndex: 2, background: 'transparent' }} />
-      <button onClick={() => go(1)} style={{ position: 'absolute', right: 0, top: 64, bottom: 0, width: '33%', zIndex: 2, background: 'transparent' }} />
+      <button onClick={goPrev} style={{ position: 'absolute', left: 0, top: 64, bottom: 0, width: '33%', zIndex: 2, background: 'transparent' }} />
+      <button onClick={goNext} style={{ position: 'absolute', right: 0, top: 64, bottom: 0, width: '33%', zIndex: 2, background: 'transparent' }} />
       <div key={i} style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 40px', animation: 'float-up .35s var(--ease-out-soft) both' }}>
         <div className="kicker" style={{ marginBottom: 16, color: el.color }}>{p.scoreLabel}</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
@@ -58,9 +87,6 @@ export default function TodayStory({ index = 0, onClose, name = '아라' }: Prop
             <div className="kicker" style={{ fontSize: 9.5, marginTop: 4 }}>{p.scoreLabel}</div>
           </div>
         </div>
-      </div>
-      <div className="kicker" style={{ position: 'absolute', bottom: 30, left: 0, right: 0, textAlign: 'center', fontSize: 9.5, color: 'var(--fg-4)', zIndex: 1 }}>
-        좌 · 우를 탭해 넘겨보세요
       </div>
     </div>
   );

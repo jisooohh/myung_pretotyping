@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useUserStore } from '@/store/useUserStore';
 import { useMapStore, activeNodeSelector } from '@/store/useMapStore';
 import { useHydrated } from '@/hooks/useHydrated';
@@ -15,12 +15,23 @@ import CounselReport from './CounselReport';
 import OnbMapState from '@/components/onboarding/OnbMapState';
 import OnbMapLoading from '@/components/onboarding/OnbMapLoading';
 
+interface RelationPartner {
+  name: string;
+  el: string;
+  g: string;
+  rel?: string;
+}
+
 export default function MapPageClient() {
   const hydrated = useHydrated();
   const { user, completeMapOnboarding } = useUserStore();
-  const { flow, simKind, setFlow, resetFlow, setSimKind, confirmNode, saveUnselectedScenarioOptions } = useMapStore();
+  const { flow, simKind, setFlow, resetFlow, setSimKind, confirmNode, saveUnselectedScenarioOptions, saveRelationSimulation } = useMapStore();
   const activeNode = useMapStore(activeNodeSelector);
   const [onbStep, setOnbStep] = useState<'state' | 'loading'>('state');
+  const [relationPartner, setRelationPartner] = useState<RelationPartner>({ name: '지원', el: 'fire', g: '丙', rel: '썸' });
+  const saveCurrentRelation = useCallback(() => {
+    saveRelationSimulation(`${relationPartner.name}와의 관계 · ${simKind} 시뮬레이션`);
+  }, [relationPartner.name, saveRelationSimulation, simKind]);
 
   if (!hydrated) {
     return <div style={{ flex: 1, background: '#000' }} />;
@@ -59,19 +70,36 @@ export default function MapPageClient() {
         />
       );
     case 'relation':
-      return <RelationEntry onNext={() => setFlow('compat')} onBack={resetFlow} />;
+      return (
+        <RelationEntry
+          onNext={(partner) => {
+            setRelationPartner({ name: partner.name, el: partner.el, g: partner.g, rel: partner.rel });
+            setFlow('compat');
+          }}
+          onBack={resetFlow}
+        />
+      );
     case 'compat':
       return (
         <CompatReport
           confirmed={confirmed}
-          onConfirm={() => confirmNode()}
+          partner={relationPartner}
+          onConfirm={() => confirmNode(`${relationPartner.name}와의 관계`)}
           onSim={(k) => { setSimKind(k); setFlow('chatsim'); }}
           onBack={() => (confirmed ? resetFlow() : setFlow('relation'))}
           onClose={resetFlow}
         />
       );
     case 'chatsim':
-      return <ChatSim onBack={() => setFlow('compat')} onClose={resetFlow} kind={simKind} />;
+      return (
+        <ChatSim
+          onBack={() => setFlow('compat')}
+          onClose={resetFlow}
+          kind={simKind}
+          partner={relationPartner}
+          onComplete={saveCurrentRelation}
+        />
+      );
     case 'counsel':
       return (
         <CounselReport

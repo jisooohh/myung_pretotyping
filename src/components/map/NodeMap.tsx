@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { KIND } from '@/constants/saju';
 import type { WorryNode } from '@/store/useMapStore';
 
@@ -11,7 +12,7 @@ interface Props {
 const W = 340;
 const cx = W / 2;
 const TOP = 26;
-const STEP = 64;
+const STEP = 86;
 
 interface Placed extends WorryNode { x: number; y: number; w: number; h: number; current: boolean; }
 
@@ -23,30 +24,42 @@ function boundary(x: number, y: number, w: number, h: number, tx: number, ty: nu
 }
 
 export default function NodeMap({ nodes, onOpen }: Props) {
-  const unselectedIndexByParent = new Map<string, number>();
-  const placed: Placed[] = nodes.map((n, i) => {
-    const current = i === nodes.length - 1;
-    let offset = 0;
-    if (!n.selected) {
-      const parentKey = n.parentId || 'root';
-      const branchIndex = unselectedIndexByParent.get(parentKey) || 0;
-      unselectedIndexByParent.set(parentKey, branchIndex + 1);
-      offset = (branchIndex % 2 === 0 ? -1 : 1) * (52 + Math.floor(branchIndex / 2) * 24);
-    }
-    return {
+  const [focusedId, setFocusedId] = useState<string | null>(null);
+  const mainNodes = nodes.filter((n) => !n.parentId);
+  const latestMainId = mainNodes.at(-1)?.id;
+  const placed: Placed[] = [];
+
+  mainNodes.forEach((n, i) => {
+    const current = n.id === latestMainId;
+    const parent: Placed = {
       ...n,
-      x: cx + offset,
+      x: cx,
       y: TOP + (i + 1) * STEP,
-      w: current ? 116 : Math.max(60, n.label.length * 12 + 24),
+      w: current ? 116 : Math.max(58, Math.min(96, n.label.length * 9 + 20)),
       h: current ? 42 : 28,
       current,
     };
+    placed.push(parent);
+
+    const children = nodes.filter((c) => c.parentId === n.id);
+    children.forEach((child, childIndex) => {
+      const side = childIndex % 2 === 0 ? -1 : 1;
+      const row = Math.floor(childIndex / 2);
+      placed.push({
+        ...child,
+        x: cx + side * 92,
+        y: parent.y + 26 + row * 34,
+        w: Math.max(54, Math.min(86, child.label.length * 8 + 18)),
+        h: 24,
+        current: false,
+      });
+    });
   });
 
   const placedById = new Map(placed.map((p) => [p.id, p]));
   const root = { x: cx, y: TOP, w: 30, h: 30 };
-  const last = placed[placed.length - 1];
-  const H = (last ? last.y : TOP) + 90;
+  const lastY = placed.reduce((max, p) => Math.max(max, p.y), TOP);
+  const H = lastY + 90;
 
   const edges: Array<{ a: { x: number; y: number; w: number; h: number }; b: Placed }> = [];
   let prev: { x: number; y: number; w: number; h: number } = root;
@@ -87,26 +100,38 @@ export default function NodeMap({ nodes, onOpen }: Props) {
       {placed.map((p) => {
         const k = KIND[p.kind];
         const sel = p.selected;
+        const branch = p.nodeType === 'scenario-branch' || !!p.parentId;
+        const currentMain = p.current && !branch;
+        const focused = focusedId === p.id;
         return (
           <div key={p.id} style={{ position: 'absolute', left: `${(p.x / W) * 100}%`, top: p.y, transform: 'translate(-50%,-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
             <button
-              onClick={() => onOpen(p.id)}
-              style={{
-                padding: p.current ? '11px 18px' : '6px 12px',
-                borderRadius: p.current ? 15 : 9,
-                fontSize: p.current ? 15.5 : 11.5,
-                fontWeight: p.current ? 700 : 600,
-                whiteSpace: 'nowrap',
-                cursor: 'pointer',
-                background: sel ? (p.current ? k.color : k.color + '2e') : 'rgba(255,255,255,0.06)',
-                color: sel ? '#fff' : 'rgba(255,255,255,0.62)',
-                border: sel ? `1.5px solid ${k.color}${p.current ? 'ff' : '99'}` : '1.5px dashed rgba(255,255,255,0.32)',
-                boxShadow: sel && p.current ? `0 8px 22px ${k.color}66` : 'none',
+              onClick={() => {
+                setFocusedId(p.id);
+                window.setTimeout(() => onOpen(p.id), branch ? 120 : 0);
               }}
+              style={{
+                width: p.w,
+                minHeight: p.h,
+                padding: branch ? '4px 8px' : currentMain ? '11px 18px' : '6px 11px',
+                borderRadius: branch ? 8 : currentMain ? 15 : 9,
+                fontSize: branch ? 10 : currentMain ? 15.5 : 11.5,
+                fontWeight: currentMain ? 700 : 600,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                cursor: 'pointer',
+                background: sel ? (currentMain ? k.color : k.color + '2e') : branch ? 'rgba(255,255,255,0.045)' : 'rgba(255,255,255,0.06)',
+                color: sel ? '#fff' : branch ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.62)',
+                border: focused ? `1.5px solid ${k.color}` : sel ? `1.5px solid ${k.color}${currentMain ? 'ff' : '99'}` : '1.5px dashed rgba(255,255,255,0.3)',
+                boxShadow: focused ? `0 0 0 4px ${k.color}22` : sel && currentMain ? `0 8px 22px ${k.color}66` : 'none',
+                transition: 'border-color .12s, box-shadow .12s, background .12s',
+              }}
+              title={p.decision || p.label}
             >
               {p.label}
             </button>
-            {p.current && <div className="kicker" style={{ fontSize: 8.5, color: sel ? 'var(--brand)' : 'rgba(255,255,255,0.5)', letterSpacing: '0.14em', marginTop: 1 }}>NOW</div>}
+            {currentMain && <div className="kicker" style={{ fontSize: 8.5, color: sel ? 'var(--brand)' : 'rgba(255,255,255,0.5)', letterSpacing: '0.14em', marginTop: 1 }}>NOW</div>}
             {!sel && <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.4)', marginTop: 1 }}>미선택</div>}
           </div>
         );

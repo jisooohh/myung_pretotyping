@@ -7,11 +7,12 @@ import Icon from '@/components/ui/Icon';
 import ReportHeader from './ReportHeader';
 import WorryCardBlock from './WorryCardBlock';
 
-interface Props { onNext: () => void; onBack: () => void; }
+interface RelationPartner { name: string; el: string; g: string; rel: string; }
+interface Props { onNext: (partner: RelationPartner) => void; onBack: () => void; }
 
 const PEOPLE = [
-  { n: '김지원', g: '丙', el: 'fire', rel: '썸' },
-  { n: '이서연', g: '壬', el: 'water', rel: '친구' },
+  { name: '김지원', g: '丙', el: 'fire', rel: '썸' },
+  { name: '이서연', g: '壬', el: 'water', rel: '친구' },
 ];
 
 export default function RelationEntry({ onNext, onBack }: Props) {
@@ -37,7 +38,7 @@ export default function RelationEntry({ onNext, onBack }: Props) {
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 14.5, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    {p.n}<span style={{ fontSize: 10, fontWeight: 700, color: 'var(--fg-3)', background: 'var(--bg-muted)', padding: '2px 6px', borderRadius: 4 }}>{p.rel}</span>
+                    {p.name}<span style={{ fontSize: 10, fontWeight: 700, color: 'var(--fg-3)', background: 'var(--bg-muted)', padding: '2px 6px', borderRadius: 4 }}>{p.rel}</span>
                   </div>
                   <div className="kr" style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 2 }}>저장된 상대 클론</div>
                 </div>
@@ -58,8 +59,8 @@ export default function RelationEntry({ onNext, onBack }: Props) {
         </div>
       </div>
       <div style={{ position: 'sticky', bottom: 0, padding: '12px 20px calc(24px + env(safe-area-inset-bottom, 0px))', background: 'linear-gradient(to bottom, transparent, var(--bg) 30%)', display: 'flex', gap: 10 }}>
-        <button className="btn btn-secondary" style={{ flex: '0 0 auto', paddingInline: 22 } as React.CSSProperties} onClick={onNext}>skip</button>
-        <button className="btn btn-primary" style={{ flex: 1 }} onClick={onNext}>궁합 보기</button>
+        <button className="btn btn-secondary" style={{ flex: '0 0 auto', paddingInline: 22 } as React.CSSProperties} onClick={() => onNext(PEOPLE[sel])}>skip</button>
+        <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => onNext(PEOPLE[sel])}>궁합 보기</button>
       </div>
     </div>
   );

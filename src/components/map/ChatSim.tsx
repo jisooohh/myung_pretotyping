@@ -7,7 +7,7 @@ import TwinSpark from '@/components/ui/TwinSpark';
 
 interface Message { who: 'me' | 'them'; t: string; }
 interface Partner { name: string; el: string; g: string; }
-interface Props { onBack: () => void; onClose?: () => void; kind?: string; partner?: Partner; }
+interface Props { onBack: () => void; onClose?: () => void; kind?: string; partner?: Partner; onComplete?: () => void; }
 
 const SEED: Message[] = [
   { who: 'them', t: '아라야, 오늘 하루 어땠어?' },
@@ -19,7 +19,7 @@ const SEED: Message[] = [
   { who: 'them', t: '난 너랑 더 가까워지고 싶어. 표현이 서툴러서 그렇지, 마음은 늘 너한테 가 있어. 천천히 가보자.' },
 ];
 
-export default function ChatSim({ onBack, onClose, kind = '연애', partner = { name: '지원', el: 'fire', g: '丙' } }: Props) {
+export default function ChatSim({ onBack, onClose, kind = '연애', partner = { name: '지원', el: 'fire', g: '丙' }, onComplete }: Props) {
   const el = EL[partner.el] || EL.fire;
   const [revealed, setRevealed] = useState(1);
   const [extra, setExtra] = useState<Message[]>([]);
@@ -32,6 +32,10 @@ export default function ChatSim({ onBack, onClose, kind = '연애', partner = { 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [revealed, extra]);
+
+  useEffect(() => {
+    if (seedDone) onComplete?.();
+  }, [seedDone, onComplete]);
 
   const send = () => {
     const v = text.trim();
