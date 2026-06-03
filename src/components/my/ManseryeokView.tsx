@@ -23,6 +23,9 @@ export default function ManseryeokView() {
   const { user } = useUserStore();
   const { data: saju } = useSaju();
   const currentAge = user.birthDate ? getAge(user.birthDate) : null;
+  const birthBasis = user.birthDate
+    ? `${user.birthDate}${user.birthTime ? ` ${user.birthTime}` : ' 시간 미상'}`
+    : null;
 
   return (
     <div className="pad-x" style={{ paddingTop: 18, paddingBottom: 24 }}>
@@ -30,6 +33,11 @@ export default function ManseryeokView() {
         <div className="kicker">만세력 · 命</div>
         <div className="line" />
       </div>
+      {birthBasis && (
+        <div className="kr" style={{ margin: '-12px 0 12px', fontSize: 11, color: 'var(--fg-4)' }}>
+          계산 기준 {birthBasis}
+        </div>
+      )}
       <div className="card ed" style={{ padding: 20, marginBottom: 26 }}>
         <ManseryeokPanel />
       </div>
