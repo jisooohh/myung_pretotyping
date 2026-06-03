@@ -21,6 +21,7 @@ export interface WorryNode {
   reportType: ReportType;
   selected: boolean;     // confirmed (선택 확정) vs explored-but-unselected
   decision?: string;
+  scenarioText?: string;
   parentId?: string;
   scenarioPicks?: Record<number, number>;
   choiceId?: number;
@@ -40,15 +41,16 @@ const shortLabel = (worry: string): string => {
   return t.length > 12 ? t.slice(0, 12) + '…' : t;
 };
 
-const scenarioLabel = (option: string): string => {
-  if (option.includes('포트폴리오')) return '포트폴리오 경로';
-  if (option.includes('지인')) return '첫 프로젝트 경로';
-  if (option.includes('코딩테스트')) return '코딩테스트 경로';
-  if (option.includes('정규직')) return '정규직 경로';
-  if (option.includes('프리랜서')) return '프리랜서 경로';
-  if (option.includes('협상')) return '협상 경로';
-  return shortLabel(option);
+const scenarioNodeLabel = (scenario: string): string => {
+  const t = scenario.trim().replace(/\s+/g, ' ');
+  if (!t) return '예상 시나리오';
+  return t.length > 24 ? t.slice(0, 24) + '…' : t;
 };
+
+interface ScenarioOption {
+  label: string;
+  scenario: string;
+}
 
 interface MapStore {
   flow: MapFlow;
@@ -62,7 +64,7 @@ interface MapStore {
   startFlow: (tag: Tag, worry: string) => void;
   openNode: (id: string) => void;
   confirmNode: (decision?: string) => void;
-  saveUnselectedScenarioOptions: (picks: Record<number, number>, choices: Array<{ id: number; opts: string[] }>) => void;
+  saveUnselectedScenarioOptions: (picks: Record<number, number>, choices: Array<{ id: number; opts: ScenarioOption[] }>) => void;
   saveRelationSimulation: (decision: string) => void;
   setSimKind: (kind: string) => void;
   resetFlow: () => void;
@@ -129,7 +131,7 @@ export const useMapStore = create<MapStore>()(
 
         const alternatives = choices.flatMap((choice) =>
           choice.opts
-            .map((label, optionIndex) => ({ choice, label, optionIndex }))
+            .map((option, optionIndex) => ({ choice, option, optionIndex }))
             .filter(({ choice, optionIndex }) => picks[choice.id] !== optionIndex)
         );
 
@@ -137,7 +139,7 @@ export const useMapStore = create<MapStore>()(
           .filter((n) => n.parentId !== activeNodeId || n.selected)
           .map((n) =>
             n.id === activeNodeId
-              ? { ...n, scenarioPicks: picks, decision: choices.map((c) => c.opts[picks[c.id]]).filter(Boolean).join(' · ') }
+              ? { ...n, scenarioPicks: picks, decision: choices.map((c) => c.opts[picks[c.id]]?.label).filter(Boolean).join(' · ') }
               : n
           );
 
@@ -148,12 +150,14 @@ export const useMapStore = create<MapStore>()(
               !n.selected &&
               n.parentId === activeNodeId &&
               n.choiceId === alt.choice.id &&
-              n.decision === alt.label
+              n.decision === alt.option.label
           );
 
           if (existing) {
             nextNodes = nextNodes.map((n) =>
-              n.id === existing.id ? { ...n, scenarioPicks, worry, label: scenarioLabel(alt.label) } : n
+              n.id === existing.id
+                ? { ...n, scenarioPicks, worry, label: scenarioNodeLabel(alt.option.scenario), scenarioText: alt.option.scenario }
+                : n
             );
             continue;
           }
@@ -163,11 +167,12 @@ export const useMapStore = create<MapStore>()(
             {
               id: `n_${Date.now().toString(36)}_${alt.choice.id}_${alt.optionIndex}`,
               kind: '진로',
-              label: scenarioLabel(alt.label),
+              label: scenarioNodeLabel(alt.option.scenario),
               worry,
               reportType: 'result',
               selected: false,
-              decision: alt.label,
+              decision: alt.option.label,
+              scenarioText: alt.option.scenario,
               parentId: activeNodeId,
               scenarioPicks,
               choiceId: alt.choice.id,
