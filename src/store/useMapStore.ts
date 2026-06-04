@@ -50,6 +50,7 @@ const scenarioNodeLabel = (scenario: string): string => {
 
 interface ScenarioOption {
   label: string;
+  scenarioLabel: string;
   scenario: string;
 }
 
@@ -146,11 +147,16 @@ export const useMapStore = create<MapStore>()(
             .filter(({ choice, optionIndex }) => picks[choice.id] !== optionIndex)
         );
 
+        const optionTitle = (option: ScenarioOption) => scenarioNodeLabel(option.scenarioLabel || option.scenario);
+
         let nextNodes = nodes
           .filter((n) => n.parentId !== activeNodeId || n.selected)
           .map((n) =>
             n.id === activeNodeId
-              ? { ...n, scenarioPicks: picks, decision: choices.map((c) => c.opts[picks[c.id]]?.label).filter(Boolean).join(' · ') }
+              ? { ...n, scenarioPicks: picks, decision: choices.flatMap((c) => {
+                  const selectedOption = c.opts[picks[c.id]];
+                  return selectedOption ? [optionTitle(selectedOption)] : [];
+                }).join(' · ') }
               : n
           );
 
@@ -161,13 +167,13 @@ export const useMapStore = create<MapStore>()(
               !n.selected &&
               n.parentId === activeNodeId &&
               n.choiceId === alt.choice.id &&
-              n.decision === alt.option.label
+              n.decision === optionTitle(alt.option)
           );
 
           if (existing) {
             nextNodes = nextNodes.map((n) =>
               n.id === existing.id
-                ? { ...n, scenarioPicks, worry, label: scenarioNodeLabel(alt.option.scenario), scenarioText: alt.option.scenario }
+                ? { ...n, scenarioPicks, worry, label: optionTitle(alt.option), decision: optionTitle(alt.option), scenarioText: alt.option.scenario }
                 : n
             );
             continue;
@@ -178,11 +184,11 @@ export const useMapStore = create<MapStore>()(
             {
               id: `n_${Date.now().toString(36)}_${alt.choice.id}_${alt.optionIndex}`,
               kind: '진로',
-              label: scenarioNodeLabel(alt.option.scenario),
+              label: optionTitle(alt.option),
               worry,
               reportType: 'result',
               selected: false,
-              decision: alt.option.label,
+              decision: optionTitle(alt.option),
               scenarioText: alt.option.scenario,
               parentId: activeNodeId,
               scenarioPicks,

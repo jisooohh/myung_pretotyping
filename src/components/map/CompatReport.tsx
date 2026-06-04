@@ -13,6 +13,16 @@ export default function CompatReport({ onBack, onSim, onConfirm, onClose, confir
   const { worry } = useMapStore();
   const [sim, setSim] = useState('연애');
   const shortName = partner.name.replace(/^김|^이|^박|^최|^정|^강|^조|^윤|^장|^임|^한|^오|^서|^신|^권|^황|^안|^송|^류|^홍/, '');
+  const partnerProfile = { n: shortName || partner.name, el: partner.el, g: partner.g, label: partner.rel || '상대' };
+  const myProfile = { n: '아라', el: 'fire', g: '丁', label: '나' };
+  const renderProfile = (p: typeof partnerProfile) => (
+    <div key={p.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, minWidth: 0 }}>
+      <div style={{ width: 64, height: 64, borderRadius: '50%', background: EL[p.el].soft, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span className="glyph" style={{ fontSize: 26, color: EL[p.el].color }}>{p.g}</span>
+      </div>
+      <div style={{ maxWidth: 86, fontSize: 13, fontWeight: 700, textAlign: 'center', whiteSpace: 'normal', lineHeight: 1.25 }}>{p.label} · {p.n}</div>
+    </div>
+  );
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -23,21 +33,15 @@ export default function CompatReport({ onBack, onSim, onConfirm, onClose, confir
           <p className="kr" style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>{worry || '지금 썸 타는 사람이랑 만나도 괜찮을까?'}</p>
         </div>
         <div className="card" style={{ padding: 20, marginBottom: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around' }}>
-            {[{ n: shortName || partner.name, el: partner.el, g: partner.g, label: partner.rel || '상대' }, { n: '아라', el: 'fire', g: '丁', label: '나' }].map((p, i) => (
-              <div key={p.n} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 64, height: 64, borderRadius: '50%', background: EL[p.el].soft, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span className="glyph" style={{ fontSize: 26, color: EL[p.el].color }}>{p.g}</span>
-                </div>
-                <div style={{ fontSize: 13, fontWeight: 700 }}>{p.label} · {p.n}</div>
-                {i === 0 && (
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 30, fontWeight: 700, color: 'var(--brand)', lineHeight: 1 }}>64</div>
-                    <div className="mono" style={{ fontSize: 10, color: 'var(--fg-3)', marginTop: 2 }}>궁합</div>
-                  </div>
-                )}
-              </div>
-            ))}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', columnGap: 14 }}>
+            {renderProfile(partnerProfile)}
+            <div aria-label="궁합 점수" style={{ minWidth: 58, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: 42, height: 1, background: 'var(--divider)', marginBottom: 8 }} />
+              <div style={{ fontSize: 30, fontWeight: 700, color: 'var(--brand)', lineHeight: 1 }}>64</div>
+              <div className="mono" style={{ fontSize: 10, color: 'var(--fg-3)', marginTop: 3 }}>궁합</div>
+              <div style={{ width: 42, height: 1, background: 'var(--divider)', marginTop: 8 }} />
+            </div>
+            {renderProfile(myProfile)}
           </div>
         </div>
         <div className="card clone-card" style={{ marginBottom: 16 }}>
