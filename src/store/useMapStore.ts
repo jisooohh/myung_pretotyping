@@ -42,16 +42,25 @@ const shortLabel = (worry: string): string => {
   return t.length > 12 ? t.slice(0, 12) + '…' : t;
 };
 
-const scenarioNodeLabel = (scenario: string): string => {
-  const t = scenario.trim().replace(/\s+/g, ' ');
-  if (!t) return '예상 시나리오';
-  return t.length > 24 ? t.slice(0, 24) + '…' : t;
-};
-
 interface ScenarioOption {
   label: string;
   scenario: string;
 }
+
+const CAREER_EXPECTED_SCENARIOS = [
+  {
+    label: '프리랜서',
+    scenarioText: '지금 프리랜서로 전향한다 · 빠른 독립 · 火의 추진력 흐름',
+  },
+  {
+    label: '6개월 준비',
+    scenarioText: '6개월 더 준비하며 병행한다 · 뿌리를 다지는 안정형 흐름',
+  },
+  {
+    label: '기획 전환',
+    scenarioText: '기획 직군으로 전환한다 · 개발 경험을 무기로 쓰는 변화형',
+  },
+];
 
 interface MapStore {
   flow: MapFlow;
@@ -140,12 +149,6 @@ export const useMapStore = create<MapStore>()(
         const active = nodes.find((n) => n.id === activeNodeId);
         if (!active) return;
 
-        const alternatives = choices.flatMap((choice) =>
-          choice.opts
-            .map((option, optionIndex) => ({ choice, option, optionIndex }))
-            .filter(({ choice, optionIndex }) => picks[choice.id] !== optionIndex)
-        );
-
         let nextNodes = nodes
           .filter((n) => n.parentId !== activeNodeId || n.selected)
           .map((n) =>
@@ -154,20 +157,19 @@ export const useMapStore = create<MapStore>()(
               : n
           );
 
-        for (const alt of alternatives) {
-          const scenarioPicks = { ...picks, [alt.choice.id]: alt.optionIndex };
+        for (const [scenarioIndex, scenario] of CAREER_EXPECTED_SCENARIOS.entries()) {
           const existing = nextNodes.find(
             (n) =>
               !n.selected &&
               n.parentId === activeNodeId &&
-              n.choiceId === alt.choice.id &&
-              n.decision === alt.option.label
+              n.choiceId === scenarioIndex &&
+              n.decision === scenario.label
           );
 
           if (existing) {
             nextNodes = nextNodes.map((n) =>
               n.id === existing.id
-                ? { ...n, scenarioPicks, worry, label: scenarioNodeLabel(alt.option.scenario), scenarioText: alt.option.scenario }
+                ? { ...n, scenarioPicks: picks, worry, label: scenario.label, scenarioText: scenario.scenarioText }
                 : n
             );
             continue;
@@ -176,17 +178,17 @@ export const useMapStore = create<MapStore>()(
           nextNodes = [
             ...nextNodes,
             {
-              id: `n_${Date.now().toString(36)}_${alt.choice.id}_${alt.optionIndex}`,
+              id: `n_${Date.now().toString(36)}_expected_${scenarioIndex}`,
               kind: '진로',
-              label: scenarioNodeLabel(alt.option.scenario),
+              label: scenario.label,
               worry,
               reportType: 'result',
               selected: false,
-              decision: alt.option.label,
-              scenarioText: alt.option.scenario,
+              decision: scenario.label,
+              scenarioText: scenario.scenarioText,
               parentId: activeNodeId,
-              scenarioPicks,
-              choiceId: alt.choice.id,
+              scenarioPicks: picks,
+              choiceId: scenarioIndex,
               nodeType: 'scenario-branch',
               createdAt: Date.now(),
             },
